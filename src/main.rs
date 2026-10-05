@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use rand::Rng;
+use rand::RngExt;
+use std::thread;
+use std::time::Duration;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Cell {
@@ -9,22 +11,23 @@ pub enum Cell {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Loc {
-	x: usize,
-	y: usize,
+	x: u32,
+	y: u32,
 }
 
 pub struct Grid {
-	width: usize,
-	height: usize,
+	width: u32,
+	height: u32,
 	grid: HashMap<Loc,Cell>,
 }
 
 impl Grid{
-	fn new(width: usize, height: usize, prob: f64) -> Self {
+	fn new(width: u32, height: u32, prob: f64) -> Self {
         let mut grid = HashMap::new();
+		let mut rng = rand::rng();
         for y in 0..height {
             for x in 0..width {
-				let cell = if Rng.random_bool(prob) {
+				let cell = if rng.random_bool(prob) {
 					Cell::Alive
 				} else {
 					Cell::Dead
@@ -47,9 +50,10 @@ impl Grid{
 				if nx < 0 || ny < 0 || nx >= self.width as i32 || ny >= self.height as i32 {
 					continue;
 				}
-				let nloc = Loc { x: nx as usize, y: ny as usize };
+				let nloc = Loc { x: nx as u32, y: ny as u32 };
 				if self.grid.get(&nloc) == Some(&Cell::Alive) {
 					count += 1;
+				}
 			}
 		}
 		count
@@ -57,35 +61,36 @@ impl Grid{
 
 	pub fn turn(&mut self) {
 		let mut next = HashMap::new();
-		for [loc, cell] in &self.grid {
-			let n = check_neighbour(*loc);
+		for (loc, cell) in &self.grid {
+			let n = self.check_neighbour(*loc);
 			if n > 3 || n < 2 {
-				let next[loc, Cell::Dead];
+				next.insert(*loc, Cell::Dead);
 			} else {
-				let next[loc, Cell::Alive];
+				next.insert(*loc, Cell::Alive);
 			}
 		}
 		self.grid = next;
 	}
 
 	pub fn print_grid(&self) {
-		for y in self.height {
-			for x in self.width {
-				if self.grid.get([x, y]) == Some(&Cell::Alive) {
-					println!("# ");
+		for y in 0..self.height {
+			let mut line = String::new();
+			for x in 0..self.width {
+				if self.grid.get(&Loc { x, y }) == Some(&Cell::Alive) {
+					line.push_str("# ");
 				} else {
-					println!(". ");
+					line.push_str(". ");
 				}
 			}
-			println!("\n");
+			println!("{}", line);
 		}
 	}
 }
 
 fn main() {
-    let width = 10;
-	let height = 10;
-	let prob = 0.3;
+    let width = 100;
+	let height = 100;
+	let prob = 0.1;
 
 	let mut grid = Grid::new(width, height, prob);
 
@@ -93,7 +98,7 @@ fn main() {
         print!("\x1B[2J\x1B[H");
         grid.print_grid();
         grid.turn();
-        thread::sleep(Duration::from_millis(200));
+        thread::sleep(Duration::from_millis(3000));
     }
 	
 }
